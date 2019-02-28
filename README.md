@@ -9,9 +9,7 @@ Strava2SQL uses only requests and sqlalchemy to download data, but a quick demo 
 
 0) Register an API application with Strava, using 'localhost' for the callback domain (if you don't have or intend to use one).
 
-1) Run initial_auth.py, entering your Strava client ID and client secret from https://www.strava.com/settings/api\
-  There are several editable sections in the code, necessary if you would like to retrieve different scopes for access tokens, OR
-  you have more than ~50,000 activities. Search the file for "edit" and read the comments.
+1) Run initial_auth.py, entering your Strava client ID and client secret from https://www.strava.com/settings/api There are several editable sections in the code. This is only necessary if you would like to retrieve different scopes for access tokens, OR you have more than ~50,000 activities. Search the file for "edit" and read the comments.
 
 2) Run activities_load.py, which will create a SQLite database in the same directory containing all your activities.
   Using DB Browser for SQLite (https://sqlitebrowser.org/) is a good way to get a first glance at your data.
