@@ -14,5 +14,5 @@ Strava2SQL uses only requests and sqlalchemy to download data, but a quick demo 
 2) Run activities_load.py, which will create a SQLite database in the same directory containing all your activities.
   Using DB Browser for SQLite (https://sqlitebrowser.org/) is a good way to get a first glance at your data.
 
-3) Run/view query_test.py to get a printout of your average ride distance (m) by day of week.
+3) Run query_test.py to get a printout of your average ride distance (m) by day of week.
 
