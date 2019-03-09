@@ -141,6 +141,10 @@ class Activity(Base):
                 val = dt.timedelta(seconds=activity_dict.get(item, None))
                 setattr(self, item, val)
 
+            elif item == 'strava_id':
+                setattr(self, 'strava_id', activity_dict.get('id', None))
+                # assign "id" field to 'strava_id' to preserve SQL id
+
             else:
                 setattr(self, item, activity_dict.get(item, None))  # set all attrs from list
 
