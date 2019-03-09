@@ -74,6 +74,66 @@ class Athlete(Base):
         self.strava_id = id
         self.resource_state = resource_state
 
+class Segment(Base):
+
+    __tablename__ = 'segments'
+
+    effort_list = ['effort_id', 'resource_state', 'name', 'activity_id', 'athlete_id', 'elapsed_time', 'moving_time'
+                   'start_date', 'start_date_local', 'distance', 'start_index', 'end_index', 'device_watts',
+                   'average_watts', 'kom_rank', 'pr_rank', 'achievements', 'hidden']
+    effort_edit_list = ['effort_id', 'activity_id', 'athlete_id']
+    effort_datetime_list = ['start_date', 'start_date_local']
+    effort_timedelta_list = ['elapsed_time', 'moving_time']
+
+
+    ### EFFORT Variables
+    id = Column(Integer, primary_key=True)
+    effort_id = Column(Integer)  # EDITED
+    resource_state = Column(Integer)
+    name = Column(String)
+    activity_id = Column(Integer)  # EDITED
+    athlete_id = Column(Integer)  # EDITED
+    elapsed_time = Column(Interval)
+    moving_time = Column(Interval)
+    start_date = Column(DateTime)
+    start_date_local = Column(DateTime)
+    distance = Column(Float)
+    start_index = Column(Integer)
+    end_index = Column(Integer)
+    device_watts = Column(Boolean)
+    average_watts = Column(Float)
+    kom_rank = Column(Integer)
+    pr_rank = Column(Integer)
+    achievements = Column(MutableList.as_mutable(JList))
+    hidden = Column(Boolean)
+
+    segment_list = ['segment_id', 'segment_resource_state', 'segment_name', 'activity_type', 'segment_distance',
+                    'average_grade', 'maximum_grade', 'elevation_high', 'elevation_low', 'start_latlng', 'end_latlng',
+                    'climb_category', 'city', 'state', 'country', 'private', 'hazardous', 'starred']
+    segment_edit_list = ['segment_id', 'segment_resource_state', 'segment_name', 'segment_distance']
+
+    ### SEGMENT Variables
+    segment_id = Column(Integer)  # EDITED
+    segment_resource_state = Column(Integer)  # EDITED
+    segment_name = Column(String)  # EDITED
+    activity_type = Column(String)
+    segment_distance = Column(Float)  # EDITED
+    average_grade = Column(Float)
+    maximum_grade = Column(Float)
+    elevation_high = Column(Float)
+    elevation_low = Column(Float)
+    start_latlng = Column(MutableList.as_mutable(JList))
+    end_latlng = Column(MutableList.as_mutable(JList))
+    climb_category = Column(Integer)
+    city = Column(String)
+    state = Column(String)
+    country = Column(String)
+    private = Column(Boolean)
+    hazardous = Column(Boolean)
+    starred = Column(Boolean)
+
+    def __init__(self, segment_dict):
+        pass
 
 class Activity(Base):
 
