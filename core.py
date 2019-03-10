@@ -3,14 +3,15 @@ import json
 import datetime as dt
 from datetime import datetime
 
+from sqlalchemy.orm import relationship
 from sqlalchemy.types import TypeDecorator, VARCHAR
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Float, DateTime, Interval, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Interval, Boolean, ForeignKey
 
-activity_var_list = (['resource_state', 'athlete', 'name', 'distance', 'moving_time', 'elapsed_time',
+activity_var_list = (['resource_state', 'athlete', 'name', 'distance',
                       'total_elevation_gain', 'type', 'workout_type', 'strava_id', 'external_id', 'upload_id',
-                      'start_date', 'start_date_local', 'timezone', 'utc_offset', 'start_latlng', 'end_latlng',
+                      'timezone', 'utc_offset', 'start_latlng', 'end_latlng',
                       'location_city', 'location_state', 'location_country', 'start_latitude', 'start_longitude',
                       'achievement_count', 'kudos_count', 'comment_count', 'athlete_count', 'photo_count', 'map',
                       'trainer', 'commute', 'manual', 'private', 'visibility', 'flagged', 'gear_id',
@@ -18,8 +19,22 @@ activity_var_list = (['resource_state', 'athlete', 'name', 'distance', 'moving_t
                       'device_watts', 'has_heartrate', 'heartrate_opt_out', 'display_hide_heartrate_option',
                       'elev_high', 'elev_low', 'pr_count', 'total_photo_count', 'has_kudoed'])
 
+activity_edit_fields = ['athlete_id']
 activity_date_fields = ['start_date', 'start_date_local']
 activity_timedelta_fields = ['moving_time', 'elapsed_time']
+
+effort_var_list = ['resource_state', 'name', 'elapsed_time', 'moving_time'
+                   'start_date', 'start_date_local', 'distance', 'start_index', 'end_index', 'device_watts',
+                   'average_watts', 'kom_rank', 'pr_rank', 'achievements', 'hidden']
+
+effort_edit_fields = ['effort_id', 'activity_id', 'athlete_id']
+effort_datetime_fields = ['start_date', 'start_date_local']
+effort_timedelta_fields = ['elapsed_time', 'moving_time']
+
+segment_var_list = ['activity_type', 'average_grade', 'maximum_grade', 'elevation_high', 'elevation_low', 'start_latlng',
+                'end_latlng', 'climb_category', 'city', 'state', 'country', 'private', 'hazardous', 'starred']
+
+segment_edit_list = ['segment_id', 'segment_resource_state', 'segment_name', 'segment_distance']
 
 
 class JDict(TypeDecorator):
@@ -70,29 +85,30 @@ class Athlete(Base):
     strava_id = Column(Integer)
     resource_state = Column(Integer)
 
+    activity_con = relationship('Activity')
+    segment_con = relationship('Segment')
+
     def __init__(self, id, resource_state):
         self.strava_id = id
         self.resource_state = resource_state
 
 class Segment(Base):
+    """
+    A class containing all that's returned when parsing efforts from 'include_all_efforts:'true' from an activity response.
+
+    Efforts are a segment run, but carry segment information in a dict. These are separated within the segment class,
+    and share some information between both.
+    """
 
     __tablename__ = 'segments'
-
-    effort_list = ['effort_id', 'resource_state', 'name', 'activity_id', 'athlete_id', 'elapsed_time', 'moving_time'
-                   'start_date', 'start_date_local', 'distance', 'start_index', 'end_index', 'device_watts',
-                   'average_watts', 'kom_rank', 'pr_rank', 'achievements', 'hidden']
-    effort_edit_list = ['effort_id', 'activity_id', 'athlete_id']
-    effort_datetime_list = ['start_date', 'start_date_local']
-    effort_timedelta_list = ['elapsed_time', 'moving_time']
-
 
     ### EFFORT Variables
     id = Column(Integer, primary_key=True)
     effort_id = Column(Integer)  # EDITED
     resource_state = Column(Integer)
     name = Column(String)
-    activity_id = Column(Integer)  # EDITED
-    athlete_id = Column(Integer)  # EDITED
+    activity_id = Column(Integer, ForeignKey('activities.id'))  # EDITED
+    athlete_id = Column(Integer, ForeignKey('athletes.strava_id'))  # EDITED
     elapsed_time = Column(Interval)
     moving_time = Column(Interval)
     start_date = Column(DateTime)
@@ -106,11 +122,6 @@ class Segment(Base):
     pr_rank = Column(Integer)
     achievements = Column(MutableList.as_mutable(JList))
     hidden = Column(Boolean)
-
-    segment_list = ['segment_id', 'segment_resource_state', 'segment_name', 'activity_type', 'segment_distance',
-                    'average_grade', 'maximum_grade', 'elevation_high', 'elevation_low', 'start_latlng', 'end_latlng',
-                    'climb_category', 'city', 'state', 'country', 'private', 'hazardous', 'starred']
-    segment_edit_list = ['segment_id', 'segment_resource_state', 'segment_name', 'segment_distance']
 
     ### SEGMENT Variables
     segment_id = Column(Integer)  # EDITED
@@ -133,13 +144,52 @@ class Segment(Base):
     starred = Column(Boolean)
 
     def __init__(self, segment_dict):
-        pass
+        for item in effort_var_list:
+            setattr(self, item, segment_dict.get(item, None))
+
+        for item in effort_datetime_fields:
+            val = datetime.strptime(segment_dict.get(item, None), '%Y-%m-%dT%H:%M:%SZ')
+            setattr(self, item, val)
+
+        for item in effort_timedelta_fields:
+            val = dt.timedelta(seconds=segment_dict.get(item, None))
+            setattr(self, item, val)
+
+        self.effort_id = segment_dict.get('id', None)
+
+        try:
+            self.activity_id = segment_dict.get('activity').get('id')
+        except AttributeError:
+            self.activity_id = None
+
+        try:
+            self.athlete_id = segment_dict.get('athlete').get('id')
+        except AttributeError:
+            self.athlete_id = None
+
+        segment_details = segment_dict.get('segment')
+
+        if segment_details is not None:
+            for item in segment_var_list:
+                setattr(self, item, segment_details.get(item))
+
+            self.segment_id = segment_details.get('id')
+            self.segment_resource_state = segment_details.get('resource_state')
+            self.segment_name = segment_details.get('name')
+            self.segment_distance = segment_details.get('distance')
+        else:
+            for item in segment_var_list:
+                setattr(self, item, None)
+            for item in segment_edit_list:
+                setattr(self, item, None)
+
 
 class Activity(Base):
 
     __tablename__ = 'activities'
 
     id = Column(Integer, primary_key=True)
+    athlete_id = Column(Integer, ForeignKey('athletes.strava_id'))  # EDITED
     resource_state = Column(Integer)
     name = Column(String)
     distance = Column(Float)
@@ -191,22 +241,26 @@ class Activity(Base):
     total_photo_count = Column(Integer)
     has_kudoed = Column(Boolean)
 
+    segment_con = relationship('Segment')
+
     def __init__(self, activity_dict):
         for item in activity_var_list:
-            if item in activity_date_fields:
-                val = datetime.strptime(activity_dict.get(item, None), '%Y-%m-%dT%H:%M:%SZ')
-                setattr(self, item, val)
+            setattr(self, item, activity_dict.get(item, None))  # set all attrs from list
 
-            elif item in activity_timedelta_fields:
-                val = dt.timedelta(seconds=activity_dict.get(item, None))
-                setattr(self, item, val)
+        for item in activity_date_fields:
+            val = datetime.strptime(activity_dict.get(item, None), '%Y-%m-%dT%H:%M:%SZ')
+            setattr(self, item, val)
 
-            elif item == 'strava_id':
-                setattr(self, 'strava_id', activity_dict.get('id', None))
-                # assign "id" field to 'strava_id' to preserve SQL id
+        for item in activity_timedelta_fields:
+            val = dt.timedelta(seconds=activity_dict.get(item, None))
+            setattr(self, item, val)
 
-            else:
-                setattr(self, item, activity_dict.get(item, None))  # set all attrs from list
+        setattr(self, 'strava_id', activity_dict.get('id', None))
+        # assign "id" field to 'strava_id' to preserve SQL id
+        try:
+            self.athlete_id = activity_dict.get('athlete').get('id')
+        except AttributeError:
+            self.athlete_id = None
 
 
 class TempDir():
