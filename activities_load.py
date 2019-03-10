@@ -1,6 +1,8 @@
+import time
+import datetime as dt
 import os, json, requests
 
-from core import Activity, connect_to_db
+from core import Activity, Segment, Athlete, connect_to_db
 
 engine, session, Base = connect_to_db('sqlite:///activity_db.sqlite', os.getcwd())
 
@@ -21,8 +23,9 @@ client_data['refresh_token'] = response.json().get('refresh_token')
 token = f'Bearer {client_data["access_token"]}'
 athlete_base = "https://www.strava.com/api/v3/athlete/activities"
 
+ct = 0
 act_list = []
-for page in range(1, 10000):  # edit page number to be at least > your_activity_count / 50
+for page in range(1, 5):  # edit page number to be at least > your_activity_count / 50
     athlete_header = {'Authorization': token}
     athlete_params = {'page': page, 'per_page': '50'}
 
@@ -37,6 +40,37 @@ for page in range(1, 10000):  # edit page number to be at least > your_activity_
     for act in activities:
         act_list.append(Activity(act))
 
-for act in act_list:
-    session.add(act)
-session.commit()
+    for act in act_list:
+        session.add(act)
+    session.commit()  # commit after every page
+
+    ct += 1
+
+activity_ids = [a[0] for a in session.query(Activity.strava_id).all()]
+# unpack result tuples to get ids of all activities to request segments for
+
+segment_list = []
+for strava_id in activity_ids:
+
+    if ct == 575:
+        print('Sleeping 15 minutes to out-wait Strava API limit for basic applications.')
+        print(f'Will resume at {(dt.datetime.now() + dt.timedelta(minutes=15, seconds=15)).isoformat(" ")}')
+        time.sleep(60 * 15 + 15)  # if at 575 requests, sleep for ~15 minutes to out-wait strava default API limit
+
+    activity_base = f"https://www.strava.com/api/v3/activities/{strava_id}"
+    activity_header = {'Authorization': token}
+    activity_params = {'include_all_efforts': 'True'}
+
+    activity_response = requests.get(activity_base, headers=activity_header, params=activity_params).json()
+
+    segment_efforts = activity_response.get('segment_efforts')
+
+    if len(segment_efforts) > 0:
+        for segment in segment_efforts:
+            segment_list.append(Segment(segment))
+
+    for seg in segment_list:
+        session.add(seg)
+    session.commit()
+
+    ct += 1
