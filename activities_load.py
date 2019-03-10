@@ -25,7 +25,7 @@ athlete_base = "https://www.strava.com/api/v3/athlete/activities"
 
 ct = 0
 act_list = []
-for page in range(1, 5):  # edit page number to be at least > your_activity_count / 50
+for page in range(1, 10000):  # edit page number to be at least > your_activity_count / 50
     athlete_header = {'Authorization': token}
     athlete_params = {'page': page, 'per_page': '50'}
 
