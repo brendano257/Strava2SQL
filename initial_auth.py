@@ -1,4 +1,6 @@
+import webbrowser
 import requests, json
+from requests import Session, Request
 
 # Client ID and Secret and can found at https://www.strava.com/settings/api once you have registered your application
 # with Strava.
@@ -15,12 +17,8 @@ scopes = 'read,read_all,activity:read,activity:read_all'  # edit this to add any
 header = ({'client_id': client_data['client_id'], 'response_type': 'code', 'redirect_uri': 'http://localhost/exchange_token',
           'approval_prompt': 'force', 'scope': scopes})
 
-from requests import Session, Request
-
 s = Session()
 p = Request('GET', base, params=header).prepare()
-
-import webbrowser
 
 webbrowser.open(p.url)
 
