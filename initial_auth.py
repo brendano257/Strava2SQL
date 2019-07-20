@@ -1,5 +1,6 @@
 import webbrowser
-import requests, json
+import requests
+import json
 from requests import Session, Request
 
 # Client ID and Secret and can found at https://www.strava.com/settings/api once you have registered your application

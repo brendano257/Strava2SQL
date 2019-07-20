@@ -1,6 +1,8 @@
 import time
 import datetime as dt
-import os, json, requests
+import os
+import json
+import requests
 
 from core import Activity, Segment, Athlete, connect_to_db
 
